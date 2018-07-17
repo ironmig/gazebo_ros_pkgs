@@ -15,16 +15,27 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(gazebo_dev REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
+find_package(gazebo_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(include)
 
 add_library(gazebo_ros_node SHARED src/node.cpp src/executor.cpp)
 ament_target_dependencies(gazebo_ros_node "rclcpp" "gazebo_dev")
 
+add_library(gazebo_ros_api_plugin SHARED src/gazebo_ros_api_plugin.cpp)
+target_link_libraries(gazebo_ros_api_plugin gazebo_ros_node)
+ament_target_dependencies(gazebo_ros_api_plugin "rosgraph_msgs" "gazebo_msgs" "std_srvs" "rclcpp" "gazebo_dev")
+
 ament_export_include_directories(include)
 ament_export_libraries(gazebo_ros_node)
+ament_export_libraries(gazebo_ros_api_plugin)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(gazebo_dev)
+ament_export_dependencies(rosgraph_msgs)
+ament_export_dependencies(gazebo_msgs)
+ament_export_dependencies(std_srvs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -43,7 +54,9 @@ ament_package()
 install(DIRECTORY include/
         DESTINATION include)
 
-install(TARGETS gazebo_ros_node
+install(TARGETS
+  gazebo_ros_node
+  gazebo_ros_api_plugin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
