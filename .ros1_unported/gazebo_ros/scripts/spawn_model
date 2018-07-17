@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright 2018 Open Source Robotics Foundation
 #
@@ -17,18 +17,18 @@
 # Desc: helper script for spawning models in gazebo
 # Author: John Hsu, Dave Coleman
 #
-import rospy
+import rclpy
 import sys
 import os
 import argparse
 import xml
-from urlparse import urlsplit, SplitResult
-from gazebo_ros import gazebo_interface
+import urllib
+#from gazebo_ros import gazebo_interface
 from gazebo_msgs.msg import ModelStates
-from gazebo_msgs.srv import DeleteModel
+from gazebo_msgs.srv import DeleteModel, SpawnModel
 from std_srvs.srv import Empty
 from geometry_msgs.msg import Pose, Quaternion
-from tf.transformations import quaternion_from_euler
+#from tf2.transformations import quaternion_from_euler
 
 
 class SpawnModelNode():
@@ -61,8 +61,6 @@ class SpawnModelNode():
                                   If left empty or specified as "world", gazebo world frame is used')
         parser.add_argument('-gazebo_namespace', type=str, default='/gazebo',
                             help='ROS namespace of gazebo offered ROS interfaces.  Defaults to /gazebo/')
-        parser.add_argument('-robot_namespace', type=str, default=rospy.get_namespace(),
-                            help='change ROS namespace of gazebo-plugins')
         parser.add_argument('-unpause', action='store_true',
                             help='!!!Experimental!!! unpause physics after spawning model')
         parser.add_argument('-wait', type=str, metavar='MODEL_NAME', help='!!!Experimental!!! wait for model to exist')
@@ -89,6 +87,7 @@ class SpawnModelNode():
         Run node, spawning model and doing other actions as configured in program arguments.
         Returns exit code, 1 for failure, 0 for success
         '''
+        node = rclpy.create_node('spawn_model')
         # Wait for model to exist if wait flag is enabled
         if self.args.wait:
             self.model_exists = False
@@ -154,9 +153,9 @@ class SpawnModelNode():
                 filename_tag = element.get('filename')
                 if filename_tag is None:
                     continue
-                url = urlsplit(filename_tag)
+                url = urllib.parse(filename_tag)
                 if url.scheme == 'package':
-                    url = SplitResult('model', *url[1:])
+                    url = urllib.ParseResult('model', *url[1:])
                     element.set('filename', url.geturl())
 
         # Encode xml object back into string for service call
@@ -167,10 +166,20 @@ class SpawnModelNode():
         initial_pose.position.x = self.args.x
         initial_pose.position.y = self.args.y
         initial_pose.position.z = self.args.z
-        q = quaternion_from_euler(self.args.R, self.args.P, self.args.Y)
-        initial_pose.orientation = Quaternion(*q)
+        #q = quaternion_from_euler(self.args.R, self.args.P, self.args.Y)
+        #initial_pose.orientation = Quaternion(*q)
 
         # Spawn model using urdf or sdf service based on arguments
+        spawn_client = node.create_client(SpawnModel, 'spawn_model')
+        req = SpawnMode.Request()
+        req.model_xml = model_xml
+        future = client.call_async(req)
+        rclpy.spin_until_future_complete(node, future)
+        if future.result() is None:
+          node.get_logger().error('Future called failed {}'.format(future.exception()))
+        else:
+          node.get_logger().info('Future success: {}'.format(future.result()))
+        return
         success = False
         if self.args.urdf:
             success = gazebo_interface.spawn_urdf_model_client(self.args.model, model_xml, self.args.robot_namespace,
@@ -228,6 +237,6 @@ class SpawnModelNode():
 
 if __name__ == "__main__":
     sm = SpawnModelNode()
-    rospy.init_node('spawn_model', anonymous=True)
+    rclpy.init()
     exit_code = sm.run()
     sys.exit(exit_code)
