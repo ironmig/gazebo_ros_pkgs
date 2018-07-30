@@ -18,6 +18,8 @@
 #include <geometry_msgs/msg/vector3.hpp>
 #include <ignition/math/Vector3.hh>
 
+#include <string>
+
 namespace gazebo_ros
 {
 /// Generic conversion from a ROS geometry vector message to another type.
@@ -65,5 +67,22 @@ geometry_msgs::msg::Vector3 Convert(const ignition::math::Vector3d & vec)
   msg.z = vec.Z();
   return msg;
 }
+
+/// Gets the base name of a gazebo scoped name
+/// \details Example: given "my_world::my_robot::my_link", returns "my_link"
+/// \param[in] str Input scoped name, see example
+/// \return Input string with all base scopes removed, see example
+std::string ScopedNameBase(const std::string & str)
+{
+  // Get index of last :: scope marker
+  auto idx = str.rfind("::");
+  // If not found or at end, return original string
+  if (std::string::npos == idx || (idx + 2) >= str.size()) {
+    return str;
+  }
+  // Otherwise return part after last scope marker
+  return str.substr(idx + 2);
+}
+
 }  // namespace gazebo_ros
 #endif  // GAZEBO_ROS__CONVERSIONS_HPP_
