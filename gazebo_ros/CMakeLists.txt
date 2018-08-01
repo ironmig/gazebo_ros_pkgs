@@ -40,6 +40,15 @@ ament_target_dependencies(gazebo_ros_init
 )
 ament_export_libraries(gazebo_ros_init)
 
+add_library(gazebo_ros_utils
+  src/utils.cpp
+)
+ament_target_dependencies(gazebo_ros_utils
+  "rclcpp"
+  "gazebo_dev"
+)
+ament_export_libraries(gazebo_ros_utils)
+
 ament_export_include_directories(include)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(gazebo_dev)
